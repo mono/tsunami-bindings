@@ -1,0 +1,56 @@
+Tsunami.Bindings
+================
+March, 2004
+Vladimir Vukicevic
+vladimir@pobox.com
+
+Introduction
+------------
+
+Tsunami.Bindings is an OpenGL C# binding that efficiently deals with
+extensions.  Building involves potentially editing the makefile if
+you're on WIN32, and then typing "make".  Note that a cygwin
+environment is assumed; at the very least, make and perl should be
+available.
+
+Both TsunamiBindingsCore.dll and TsunamiBindingsGl.dll need to be
+referenced in your application.  There is no wrapping of GLX/WGL/AGL
+functions or extensions done at the moment, though that may happen in
+the future (patches appreciated!).
+
+Note that the "gl" and "GL_" prefixes have been stripped from function
+and constant names; thus, Gl.ClearColor(...) instead of
+Gl.glClearColor(...).  The GL_ prefix is left on a very few enumerants
+where the remainder of the symbol starts with a numeral.  For example,
+GL_3D_... is left as GL_3D_...  The prefix stripping can be disabled
+by editing csgen.pl.
+
+Extension Handling Strategy
+---------------------------
+
+For each extension that you want to use, you must do:
+
+   using Tsunami.Bindings;
+   GlExtensionLoader.GetInstance().LoadExtension
+     ("GL_ARB_vertex_buffer_object");
+
+These calls must take place after the OpenGL context is established,
+but obviously before any extension method invocations take place.
+
+Extension data is parsed from files which were spit out by the GLEW
+(http://glew.sourceforge.net/) tools, which process the extension
+specifications themselves.  They are further hand-edited to include
+method overloads, allow the usage of array types, ref/out types, and
+similar.  Note that this is an ongoing process; only a very small
+number of methods have been fully C#-ified, but the process to do so
+is very simple -- just edit the appropriate glcore/* or glext/* file,
+copy the line, and modify the signature to what it should be.
+
+A custom attribute is added to each extension method to identify its
+parent extension and original method name.  LoadExtension() uses this
+attribute information to know which methods need to be loaded.
+
+The postprocessor takes the compiled assembly and generates a new
+assembly using Reflection.Emit, with IL to invoke the native methods
+at addresses stored in fields in the Gl class (which are filled in at
+LoadExtension time).
