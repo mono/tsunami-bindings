@@ -25,7 +25,7 @@ namespace Tsunami.Bindings {
 //  public const CallingConvention GL_NATIVE_CALLCONV = CallingConvention.Cdecl;
 #else
     public const string GL_NATIVE_LIBRARY = "libGL.so";
-    public const string GL_EXTENSION_QUERY_PROC = "glxGetProcAddress";
+    public const string GL_EXTENSION_QUERY_PROC = "glXGetProcAddress";
     public const CallingConvention GL_NATIVE_CALLCONV = CallingConvention.Cdecl;
 #endif
   }
