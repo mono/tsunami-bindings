@@ -53,6 +53,17 @@ my %typemap = ('GLenum'		=> 'unsigned int',
 	       'GLXPbufferSGIX'	=> 'int',
 );
 
+# List of things that an ARRAY in a function expands out to
+my @ARRAY_expansions = ('bool []',
+			'byte []',
+			'short []',
+			'ushort []',
+			'int []',
+			'uint []',
+			'float []',
+			'double []',
+			'IntPtr');
+
 sub parse_ext($)
 {
   my $filename = shift;
@@ -153,6 +164,7 @@ sub output_func ($$)
   $usefname = $fname;
   $frtype = $fdata->{'rtype'};
   $fallparms = $fdata->{'parms'};
+  $arrayexpand = 0;
   $unsafe = "";
 
   # fix up some things that are keywords, argh
@@ -201,6 +213,10 @@ sub output_func ($$)
     $unsafe = "unsafe";
   }
 
+  if ($fallparms =~ m/ARRAY/) {
+    $arrayexpand = 1;
+  }
+
   ## The idea here is to automatically take things like
   ## "GLfloat *f" and spit out bindings for
   ## "GLfloat *f" and "GLfloat [] f"; also
@@ -229,12 +245,18 @@ sub output_func ($$)
     }
   }
 
+  my $outfunc;
+
   # if extname is 0, it means it's a core GL function
   # and shouldn't get ExtensionAttribute info, but instead
   # a straight DllImport
   if ($extname eq "CORE") {
-    print "    [DllImport(GlDetails.GL_NATIVE_LIBRARY, EntryPoint=\"$fname\", CallingConvention=$cconv, ExactSpelling=true)]\n";
-    print "    public static extern $unsafe $frtype $usefname ($fallparms);\n";
+    $outfunc = sub
+      {
+	$paramargs = shift;
+	print "    [DllImport(GlDetails.GL_NATIVE_LIBRARY, EntryPoint=\"$fname\", CallingConvention=$cconv, ExactSpelling=true)]\n";
+	print "    public static extern $unsafe $frtype $usefname ($paramargs);\n";
+      }
   } else {
     # else this is an extension, so we need to not have a DllImport, but an attribute here
     $extfield = "ext__" . $extname . "__" . $fname;
@@ -243,12 +265,24 @@ sub output_func ($$)
       $seenextfields{$extfield} = 1;
     }
 
-    print "    [OpenGLExtensionImport(\"$extname\", \"$fname\")]\n";
-    print "    public static $unsafe $frtype $usefname ($fallparms) {\n";
-    print "        throw new InvalidOperationException(\"binding error\");\n";
-    print "    }\n";
+    $outfunc = sub
+      {
+	$paramargs = shift;
+	print "    [OpenGLExtensionImport(\"$extname\", \"$fname\")]\n";
+	print "    public static $unsafe $frtype $usefname ($paramargs) {\n";
+	print "        throw new InvalidOperationException(\"binding error\");\n";
+	print "    }\n";
+      }
   }
 
+  if ($arrayexpand) {
+    foreach my $expansion (@ARRAY_expansions) {
+      ($newparms = $fallparms) =~ s/ARRAY/$expansion/;
+      &$outfunc ($newparms);
+    }
+  } else {
+    &$outfunc ($fallparms);
+  }
 
   print "\n";
 }

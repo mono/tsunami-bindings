@@ -25,7 +25,7 @@ namespace Tsunami.Bindings {
 //  public const CallingConvention GL_NATIVE_CALLCONV = CallingConvention.Cdecl;
 #else
     public const string GL_NATIVE_LIBRARY = "libGL.so";
-    public const string GL_EXTENSION_QUERY_PROC = "glXGetProcAddress";
+    public const string GL_EXTENSION_QUERY_PROC = "glXGetProcAddressARB";
     public const CallingConvention GL_NATIVE_CALLCONV = CallingConvention.Cdecl;
 #endif
   }
@@ -46,6 +46,7 @@ namespace Tsunami.Bindings {
     private static GlExtensionLoader loaderInst;
 
     private Hashtable loadedExtensions;
+    private Hashtable loadedFunctions;
 
     public static GlExtensionLoader GetInstance() {
       if (loaderInst == null) {
@@ -59,6 +60,7 @@ namespace Tsunami.Bindings {
 
     protected GlExtensionLoader () {
       loadedExtensions = new Hashtable();
+      loadedFunctions = new Hashtable();
     }
 
     public bool LoadExtension (string extname) {
@@ -92,9 +94,13 @@ namespace Tsunami.Bindings {
 
 	OpenGLExtensionImport oglext = (OpenGLExtensionImport) atts[0];
 	if (oglext.ExtensionName == extname) {
-	  Console.WriteLine ("Loading " + oglext.EntryPoint + " for " + extname);
+	  string fieldname = "ext__" + extname + "__" + oglext.EntryPoint;
+	  if (loadedFunctions.ContainsKey (fieldname)) {
+	    continue;
+	  }
 
-	  FieldInfo fi = glt.GetField ("ext__" + extname + "__" + oglext.EntryPoint,
+	  Console.WriteLine ("Loading " + oglext.EntryPoint + " for " + extname);
+	  FieldInfo fi = glt.GetField (fieldname,
 				       BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
 	  if (fi == null) {
 	    Console.WriteLine ("Can't get extension field!");
@@ -109,6 +115,7 @@ namespace Tsunami.Bindings {
 	  }
 
 	  fi.SetValue (glt, procaddr);
+	  loadedFunctions[fieldname] = true;
 	}
       }
 
