@@ -71,13 +71,13 @@ namespace Tsunami.Bindings {
       Type glt = null;
       Assembly [] asss = AppDomain.CurrentDomain.GetAssemblies();
       foreach (Assembly a in asss) {
-	glt = a.GetType("Tsunami.Gl");
+	glt = a.GetType("Tsunami.Bindings.Gl");
 	if (glt != null)
 	  break;
       }
 
       if (glt == null) {
-	Console.WriteLine ("Couldn't find Tsunami.Gl assembly in current AppDomain!");
+	Console.WriteLine ("Couldn't find Tsunami.Bindings.Gl assembly in current AppDomain!");
 	return false;
       }
 
